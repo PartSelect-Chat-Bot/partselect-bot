@@ -1,11 +1,22 @@
+import { initializeApp } from 'firebase/app';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
-export const getAIMessage = async (userQuery) => {
-
-  const message = 
-    {
+// Use secrets in the future
+const firebaseConfig = process.env.REACT_APP_FIREBASE_CONFIG;
+const app = initializeApp(firebaseConfig);
+const functions = getFunctions(app);
+export const getAIMessage = async (messages) => {
+  try {
+    const callAI = httpsCallable(functions, 'process_LLM_query');
+    const result = await callAI({ messages: messages });
+    console.log(result)
+    const message = {
       role: "assistant",
-      content: "Connect your backend here...."
+      content: result.data
     }
-
-  return message;
+    return message;
+  } catch (error) {
+    console.error('Error calling AI function:', error.message);
+    throw error;
+  }
 };

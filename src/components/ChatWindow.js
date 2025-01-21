@@ -12,6 +12,7 @@ function ChatWindow() {
 
   const [messages,setMessages] = useState(defaultMessage)
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const messagesEndRef = useRef(null);
 
@@ -21,17 +22,29 @@ function ChatWindow() {
 
   useEffect(() => {
       scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const handleSend = async (input) => {
     if (input.trim() !== "") {
       // Set user message
-      setMessages(prevMessages => [...prevMessages, { role: "user", content: input }]);
+      const updatedMessages = [...messages, { role: "user", content: input }];
+      setMessages(updatedMessages);
       setInput("");
+      setIsLoading(true);
 
-      // Call API & set assistant message
-      const newMessage = await getAIMessage(input);
-      setMessages(prevMessages => [...prevMessages, newMessage]);
+      try {
+        // Call API & set assistant message
+        const newMessage = await getAIMessage(updatedMessages);
+        setMessages(prevMessages => [...prevMessages, newMessage]);
+      } catch (error) {
+        console.error('Error:', error);
+        setMessages(prevMessages => [...prevMessages, {
+          role: "assistant",
+          content: "I apologize, but I encountered an error. Please try again."
+        }]);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -46,6 +59,15 @@ function ChatWindow() {
                   )}
               </div>
           ))}
+          {isLoading && (
+            <div className="assistant-message-container">
+              <div className="message assistant-message loading-skeleton">
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line"></div>
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
           <div className="input-area">
             <input
@@ -59,9 +81,14 @@ function ChatWindow() {
                 }
               }}
               rows="3"
+              disabled={isLoading}
             />
-            <button className="send-button" onClick={handleSend}>
-              Send
+            <button 
+              className="send-button" 
+              onClick={() => handleSend(input)}
+              disabled={isLoading}
+            >
+              {isLoading ? "Sending..." : "Send"}
             </button>
           </div>
       </div>
